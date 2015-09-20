@@ -1,4 +1,4 @@
-## Pratical Machine Learning Project
-### 2015 September 
-  
-[The RMD project is here :-)](ERV_Practical_Machine_Learning_Project.Rmd)
+## Pratical Machine Learning ERV Project
+
+[The RMD  project is here :-)](ERV_Practical_Machine_Learning_Project.Rmd)  
+[The HTML project is here :-)](http://ervachon.github.io/Practical_Machine_Learning_Project/)
