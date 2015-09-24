@@ -33,7 +33,7 @@ Let's take a look at the histogram of the classe variable
 ggplot(trainingSet) + geom_histogram(aes(x = classe, fill= classe))
 ```  
   
-We can see that the classes are quit well balanced (order of 10<sup>3</sup>) so we can use a random forest model.
+We can see that the classes are quit well balanced (order of 10<sup>3</sup>) so we can use a **_random forest model_**.
 
 ###3. Features selection and clean data.
 In this study we apply the transformation on both trainng and test set
@@ -65,7 +65,7 @@ test$new_window  <- as.integer(test$new_window=="yes")
 ```
 
 Now we made a correlation matrix to determine the most correlated feature (min 90%) and drop them.  
-NB: in this study we prefere use this approch instead of a PCA preprocess.
+NB: in this study we choosz to use this approch instead of a PCA preprocess.
 ```{r,message=FALSE, warning=FALSE}
 nonFactorCol <- names(train[sapply(train, function(x) !is.factor(x))])
 MCor         <- abs(cor(train[,nonFactorCol],use="pairwise.complete.obs"))
