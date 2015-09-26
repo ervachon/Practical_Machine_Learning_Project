@@ -35,7 +35,7 @@ ggplot(trainingSet) + geom_histogram(aes(x = classe, fill= classe))
   
 We can see that the classes are quit well balanced (order of 10<sup>3</sup>) so we can use a **_random forest model_**.
 
-###3. Features selection and clean data.
+###3. Features selection.
 In this study we apply the transformation on both trainng and test set.
 We are going to remove features which are not relevant because they have less power of prediction or add noise.
 
