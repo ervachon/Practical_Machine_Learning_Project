@@ -85,14 +85,14 @@ testSet     &lt;- loadCSV(&quot;https://d396qusza40orc.cloudfront.net/predmachle
 <div id="features-selection-and-clean-data." class="section level3">
 <h3>3. Features selection and clean data.</h3>
 <p>In this study we apply the transformation on both trainng and test set. We are going to remove features which are not relevant because they have less power of prediction or add noise.</p>
-<p>First we are going to remove timestamp feature.</p>
+<p>First we are going to remove timestamp feature (noise).</p>
 <pre class="r"><code>lTimeStamp &lt;- lTimeStamp &lt;- names(trainingSet[grep(&quot;timestamp&quot;, names(trainingSet))])
 train      &lt;- trainingSet[,!(names(trainingSet) %in% lTimeStamp)]
 test       &lt;- testSet[,!(names(testSet) %in% lTimeStamp)]</code></pre>
-<p>Next we removed the id (X) of each sample.</p>
+<p>Next we removed the id (X) of each sample (unique so no power of explication).</p>
 <pre class="r"><code>train$X &lt;- NULL
 test$X  &lt;- NULL</code></pre>
-<p>Next we removed the feature with more than 95% of NA or null string (’’) (not relevant because not have much prediction power).</p>
+<p>Next we removed the feature with more than 95% of NA or null string (’’) (less prediction power).</p>
 <pre class="r"><code>colNA  &lt;- c(names(train[apply(train, 2,function(x) length(which(is.na(x)))&gt;=(0.95*nrow(train)))]))
 train  &lt;- train[,!(names(train) %in% colNA)]
 test   &lt;- test[,!(names(test) %in% colNA)]

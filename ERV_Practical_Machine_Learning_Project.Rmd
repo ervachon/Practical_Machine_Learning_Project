@@ -39,20 +39,20 @@ We can see that the classes are quit well balanced (order of 10<sup>3</sup>) so 
 In this study we apply the transformation on both trainng and test set.
 We are going to remove features which are not relevant because they have less power of prediction or add noise.
 
-First we are going to remove timestamp feature.
+First we are going to remove timestamp feature (noise).
 ```{r,message=FALSE, warning=FALSE}
 lTimeStamp <- lTimeStamp <- names(trainingSet[grep("timestamp", names(trainingSet))])
 train      <- trainingSet[,!(names(trainingSet) %in% lTimeStamp)]
 test       <- testSet[,!(names(testSet) %in% lTimeStamp)]
 ```  
 
-Next we removed the id (X) of each sample.
+Next we removed the id (X) of each sample (unique so no power of explication).
 ```{r,message=FALSE, warning=FALSE}
 train$X <- NULL
 test$X  <- NULL
 ```  
 
-Next we removed the feature with more than 95% of NA or null string ('') (not relevant because not have much prediction power).
+Next we removed the feature with more than 95% of NA or null string ('') (less prediction power).
 ```{r,message=FALSE, warning=FALSE}
 colNA  <- c(names(train[apply(train, 2,function(x) length(which(is.na(x)))>=(0.95*nrow(train)))]))
 train  <- train[,!(names(train) %in% colNA)]
