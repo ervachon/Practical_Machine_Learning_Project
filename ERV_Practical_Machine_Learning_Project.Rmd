@@ -24,32 +24,35 @@ loadCSV <- function(URL) {
 
 trainingSet <- loadCSV("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
 testSet     <- loadCSV("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
-```
+```  
+
 By summary the training set (*nrow(trainingSet)* and *names(trainingSet)*), we can know that wr have 19622 samples and 160 features : 1 id (X : the sample number) and 158 to explain the "classe" variables (A,B,C,D or E).
 
 Let's take a look at the histogram of the classe variable
-
 ```{r,message=FALSE, warning=FALSE}
 ggplot(trainingSet) + geom_histogram(aes(x = classe, fill= classe))
-```  
+```   
   
 We can see that the classes are quit well balanced (order of 10<sup>3</sup>) so we can use a **_random forest model_**.
 
 ###3. Features selection and clean data.
-In this study we apply the transformation on both trainng and test set
+In this study we apply the transformation on both trainng and test set.
+We are going to remove features which are not relevant because they have less power of prediction or add noise.
 
-Here we are going to remove timestamp feature (not relevant).
+First we are going to remove timestamp feature.
 ```{r,message=FALSE, warning=FALSE}
 lTimeStamp <- lTimeStamp <- names(trainingSet[grep("timestamp", names(trainingSet))])
 train      <- trainingSet[,!(names(trainingSet) %in% lTimeStamp)]
 test       <- testSet[,!(names(testSet) %in% lTimeStamp)]
-```
+```  
+
 Next we removed the id (X) of each sample.
 ```{r,message=FALSE, warning=FALSE}
 train$X <- NULL
 test$X  <- NULL
-```
-Next we removed the feature with more than 95% of NA or null string ('').
+```  
+
+Next we removed the feature with more than 95% of NA or null string ('') (not relevant because not have much prediction power).
 ```{r,message=FALSE, warning=FALSE}
 colNA  <- c(names(train[apply(train, 2,function(x) length(which(is.na(x)))>=(0.95*nrow(train)))]))
 train  <- train[,!(names(train) %in% colNA)]
@@ -57,13 +60,15 @@ test   <- test[,!(names(test) %in% colNA)]
 lEmpty <- c(names(train[apply(train, 2, function(x) length(which(x==''))>=(0.95*nrow(train)))]))
 train  <- train[,!(names(train) %in% lEmpty)]
 test   <- test[,!(names(test) %in% lEmpty)]
-```
+```  
+
+###4. Features cleanning and vectorization.
 We can see that the new_window variable is "yes" or "no" so we transforme it into binary variable (0 or 1).
 ```{r,message=FALSE, warning=FALSE}
 train$new_window <- as.integer(train$new_window=="yes")
 test$new_window  <- as.integer(test$new_window=="yes")
-```
-
+```  
+ 
 Now we made a correlation matrix to determine the most correlated feature (min 90%) and drop them.  
 NB: in this study we choosz to use this approch instead of a PCA preprocess.
 ```{r,message=FALSE, warning=FALSE}
@@ -77,13 +82,14 @@ colMCor      <- MCor[as.character(MCor$Var1) < as.character(MCor$Var2),]
 colMCor      <- as.character(MCor[as.character(MCor$Var1)<as.character(MCor$Var2),"Var1"])
 train        <- train[,!(names(train) %in% colMCor)]
 test         <- test[,!(names(test) %in% colMCor)]
-```
+```  
 
 Now we looked at the factor features (categorial features).
 ```{r,message=FALSE, warning=FALSE}
 factorCol <- names(train[sapply(train, function(x) is.factor(x))])
-```
-We have three features : user_name and classe what we want to predict, so we are going to create dummy variables with "user_name"
+```  
+
+We have two features : user_name and classe what we want to predict, so we are going to create dummy variables with "user_name"
 ```{r,message=FALSE, warning=FALSE}
 user_name            <- factor(train$user_name)
 dummiesUserName      <- data.frame(model.matrix(~user_name-1))
@@ -93,45 +99,49 @@ user_name            <- factor(test$user_name)
 dummiesUserName      <- data.frame(model.matrix(~user_name-1))
 testDummy            <- cbind(test,dummiesUserName)
 testDummy$user_name  <- NULL
-```
+```  
+
 We added dummy variables so we must identify the column number of the feature "classe".
 ```{r,message=FALSE, warning=FALSE}
 idxClasse <- grep("classe", colnames(trainDummy))
-```
+```  
+
 And we can look at the final correlation between features.
 ```{r,message=FALSE, warning=FALSE}
 corrplot(cor(trainDummy[,-idxClasse]), order = "FPC", method = "color", type = "lower", tl.cex = 0.6,title="\n\nCorrelation between features" )
-```
+```  
 
-###4. Split data train.
-Let's split the train set into **our** train set (80%) and **our** test set (20%).
+Here we can see few correlated features but it is not very important because **random forest** doesn't take care of correlated features.  
+
+###5. Split data train.
+Let's split the train set into **our** train set (80%) and **our** test set (hold_out : 20%) .
 ```{r,message=FALSE, warning=FALSE}
 inTrain  <- createDataPartition(y=trainDummy$classe, p=.80, list = FALSE)
 ourTrain <- trainDummy[inTrain,]
 ourTest  <- trainDummy[-inTrain,]
-```
+```  
 
-###5. Cross validation on our training set (80% of the original training set).
+###6. Cross validation on our training set (80% of the original training set).
 To train and validate our model we used a kfold cross validation with 5 folds on **our** training set (80% of the given training set, so 15699 samples).
 ```{r,message=FALSE, warning=FALSE}
 train_control <- trainControl(method="cv", number=5)
-```
+```  
 
-###6. Fitting and training on our training set (80% of the original training set).
+###7. Fitting and training on our training set (80% of the original training set).
 Now we can fit the model and look at the accurancy on **our** training set.
 ```{r,message=FALSE, warning=FALSE}
 modelFit     <- train(ourTrain$classe ~ ., method = "rf",data=ourTrain, trControl=train_control)
 modelAcc     <- modelFit$results[modelFit$results$mtry==modelFit$bestTune$mtry,]
 modelErrRate <- 1 - modelAcc$Accuracy
-```
+```  
+
 So with the result of this training train model we have an estimate accuracy of about `r round(modelAcc$Accuracy*100,2)`% so an error rate of `r round(modelErrRate*100,2)`%. Accuracy was used to select the optimal model using  the largest value. The final value used for the model was mtry = `r modelFit$bestTune$mtry`.  Finally we ca see that the standard deviation of the accurancy is `r round(modelAcc$AccuracySD,3)`.
 Now we plot the 40 more important features.
-
 ```{r,message=FALSE, warning=FALSE}
 plot(varImp(modelFit), top = 40)
-```
+```  
 
-###7. Score, error and validating the model with our test set (20% of the original training set).
+###8. Score, error and validating the model with our test set (20% of the original training set).
 To score **our** model we applied it to **our** test set (3923 samples) and looked at the accuray and sensitivity of the prediction. We also  did a confusion matrix before ending with the plot results of **our** test set.
 ```{r,message=FALSE, warning=FALSE}
 testPred        <- predict(modelFit,ourTest)
@@ -139,11 +149,13 @@ confMatrix      <- confusionMatrix(ourTest$classe,testPred)
 accuracy        <- confMatrix$overall["Accuracy"]
 errorRate       <- 1 - accuracy
 meanSensitivity <- mean(confMatrix$byClass[,"Sensitivity"])
-```
+```  
+
 So we have a accuracy of `r round(accuracy*100,2)`% so an error rate of `r round(errorRate*100,2)`% and a sensitivity (mean of each class) of `r round(meanSensitivity*100,2)`%. Now wa present the confusion Matrix in percentage.
 ```{r,message=FALSE, warning=FALSE}
 round(prop.table(confMatrix$table, margin=2)*100,2)
-```
+```  
+
 And now we plot the test prediction.
 ```{r,message=FALSE, warning=FALSE}
 results           <- cbind.data.frame(ourTest$classe,testPred)
@@ -152,12 +164,12 @@ p <- ggplot(results, aes(x = Reference, y = Prediction))
 p <- p + geom_jitter(position = position_jitter(width = 0.45, height = 0.45), aes(colour = Reference))
 for (i in 0:5) {p <- p + geom_abline(intercept=i+0.5,slope=0) + geom_vline(xintercept = i+0.5)}
 p
-```
+```  
 
-###8. Course predictions.
+###9. Course predictions.
 Last step the prediction of the 20 samples of the coursera course.
 ```{r,message=FALSE, warning=FALSE}
 predict(modelFit,testDummy)
-```
+```  
 
 ### End of the document.
